@@ -37,19 +37,74 @@ const bcrypt = require("bcrypt");
  * 2.6 with the "createdAt" and "updatedAt" properties that are created automatically
  */
 
-const UserSchema = new mongoose.Schema({});
+const UserSchema = new mongoose.Schema(
+  {
+    firstName: {
+      required: [true, "The first name is required"],
+      type: String,
+      trim: true,
+    },
+    lastName: {
+      required: [true, "The last name is required"],
+      type: String,
+      trim: true,
+    },
+    email: {
+      required: [true, "The email is required"],
+      type: String,
+      trim: true,
+      unique: true,
+      validate: {
+        validator: (value) => validator.isEmail(value),
+        message: (props) => `The email ${props.value} is not valid`,
+      },
+    },
+    password: {
+      required: [true, "The password is required"],
+      type: String,
+      minlength: [8, "The password is too short"],
+    },
+    speaks: [
+      {
+        type: String,
+        enum: [
+          "english",
+          "spanish",
+          "catalan",
+          "german",
+          "italian",
+          "javascript",
+        ],
+      },
+    ],
+  },
+  { timestamps: true },
+);
 
 /**
  * 3. encrypt the password before storing it in the database
  *
  * Use a salt round of 12
  */
+UserSchema.pre("save", async function passwordPreSave(next) {
+  if (!this.isModified("password")) return next();
 
+  try {
+    const hash = await bcrypt.hash(this.password, 12);a
+    this.password = hash;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+});
 /**
  * 4. add a 'comparePassword' method to the 'User' schema
  *
  * The `comparePassword` method should return a `bcrypt.compare` function call
  */
+UserShema.methods.comparePassword = function (candidate) {
+  return bcrypt.compare(candidate, this.password);
+};
 
 const UserModel = new mongoose.model("user", UserSchema);
 
